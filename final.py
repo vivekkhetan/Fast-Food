@@ -13,6 +13,7 @@ def read_data():
     global df
     df = pd.read_csv('fast_food.csv')
     df.drop_duplicates(inplace=True)
+    df['postalCode'] = df['postalCode'].astype(str)
     return df
 
 read_data()
@@ -174,34 +175,38 @@ def rand_map(state, zipcode, s):
              'by either state or zipcode.')
 
 def map_state(state, zipcode, s):
+    global df
     st.header('Restaurants in State or Zipcode')
     if s == 'State':
         restaurant = df[df['province'] == state]
     else:
-        restaurant = df[df['postalCode'] == zipcode]
-    view_state = pdk.ViewState(
-        latitude=restaurant['latitude'].mean(),
-        longitude=restaurant['longitude'].mean(),
-        zoom = 13,
-        pitch = 40)
-    layer1 = pdk.Layer('ScatterplotLayer',
-                  data = restaurant,
-                  get_position = '[longitude, latitude]',
-                  get_radius = 100,
-                  get_color = [0,0,255],
-                  pickable = True)
-    tool_tip = {"html": "Restaurant Name:<br/> <b>{name}</b> <br/>"
-                        "Address: <br/> <b> {address}",
-            "style": { "backgroundColor": "steelblue",
-                        "color": "white"}}
-    map1 = pdk.Deck(
-        map_style='mapbox://styles/mapbox/light-v9',
-        initial_view_state=view_state,
-        layers=[layer1],
-        tooltip= tool_tip
-        )
+        restaurant = df.query('postalCode == @zipcode')
+    if restaurant.shape[0] > 0:
+        view_state = pdk.ViewState(
+            latitude=restaurant['latitude'].mean(),
+            longitude=restaurant['longitude'].mean(),
+            zoom = 13,
+            pitch = 40)
+        layer1 = pdk.Layer('ScatterplotLayer',
+                      data = restaurant,
+                      get_position = '[longitude, latitude]',
+                      get_radius = 1000,
+                      get_color = [0,0,255],
+                      pickable = True)
+        tool_tip = {"html": "Restaurant Name:<br/> <b>{name}</b> <br/>"
+                            "Address: <br/> <b> {address}",
+                "style": { "backgroundColor": "steelblue",
+                            "color": "white"}}
+        map1 = pdk.Deck(
+            map_style='mapbox://styles/mapbox/light-v9',
+            initial_view_state=view_state,
+            layers=[layer1],
+            tooltip= tool_tip
+            )
 
-    st.pydeck_chart(map1)
+        st.pydeck_chart(map1)
+    else:
+        st.write('Invalid input')
     st.text("")
     st.text("")
     st.text("")
